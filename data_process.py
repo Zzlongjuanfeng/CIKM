@@ -4,62 +4,51 @@ import itertools
 from collections import Counter
 
 
-def clean_str(string):
+def process_line(line):
     """
-    Tokenization/string cleaning for all datasets except for SST.
-    Original taken from https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
+    :param line: str
+    :return: list
     """
-    string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
-    string = re.sub(r"\'s", " \'s", string)
-    string = re.sub(r"\'ve", " \'ve", string)
-    string = re.sub(r"n\'t", " n\'t", string)
-    string = re.sub(r"\'re", " \'re", string)
-    string = re.sub(r"\'d", " \'d", string)
-    string = re.sub(r"\'ll", " \'ll", string)
-    string = re.sub(r",", " , ", string)
-    string = re.sub(r"!", " ! ", string)
-    string = re.sub(r"\(", " \( ", string)
-    string = re.sub(r"\)", " \) ", string)
-    string = re.sub(r"\?", " \? ", string)
-    string = re.sub(r"\s{2,}", " ", string)
-    return string.strip().lower()
+    data_line = re.split(r'[;,\s]\s*', line.strip())  #Regular expression
+    index = data_line.pop(0)
+    y = data_line.pop(0)
+    # print(type(data_line))
+    return [data_line, y, index]
 
 
-def load_data_and_labels(positive_data_file, negative_data_file):
-    """
-    Loads MR polarity data from files, splits the data into words and generates labels.
-    Returns split sentences and labels.
-    """
-    # Load data from files
-    positive_examples = list(open(positive_data_file, "r").readlines())
-    positive_examples = [s.strip() for s in positive_examples]
-    negative_examples = list(open(negative_data_file, "r").readlines())
-    negative_examples = [s.strip() for s in negative_examples]
-    # Split by words
-    x_text = positive_examples + negative_examples
-    x_text = [clean_str(sent) for sent in x_text]
-    # Generate labels
-    positive_labels = [[0, 1] for _ in positive_examples]
-    negative_labels = [[1, 0] for _ in negative_examples]
-    y = np.concatenate([positive_labels, negative_labels], 0)
-    return [x_text, y]
 
-
-def batch_iter(data, batch_size, num_epochs, shuffle=True):
+def batch_iter1(data_file, batch_size):
     """
     Generates a batch iterator for a dataset.
     """
-    data = np.array(data)
-    data_size = len(data)
-    num_batches_per_epoch = int((len(data)-1)/batch_size) + 1
-    for epoch in range(num_epochs):
-        # Shuffle the data at each epoch
-        if shuffle:
-            shuffle_indices = np.random.permutation(np.arange(data_size))
-            shuffled_data = data[shuffle_indices]
-        else:
-            shuffled_data = data
-        for batch_num in range(num_batches_per_epoch):
-            start_index = batch_num * batch_size
-            end_index = min((batch_num + 1) * batch_size, data_size)
-            yield shuffled_data[start_index:end_index]
+    count = 0
+    x_data = []
+    y_data = []
+    with open(data_file) as file_object:
+        for line in file_object:
+            x, y, index= process_line(line)
+            x_data.append(x)
+            y_data.append(y)
+            count += 1
+            if count % batch_size == 0:
+                yield [x_data, y_data, count]
+                x_data = []
+                y_data = []
+                # print(index)
+            # print(type(x_data))
+
+
+if __name__ == "__main__":
+    batch_size = 50
+    data_size = 10000   # the number of training data
+    data_file = "/home/zxf/PycharmProjects/CIKM/CIKM_data/CIKM2017_train/train.txt"
+
+    test_batchSize = 200
+    test_size = 2000
+    test_file = "/home/zxf/PycharmProjects/CIKM/CIKM_data/CIKM2017_testA/testA.txt"
+
+    batchs = batch_iter1(data_file, batch_size)
+    for batch in batchs:
+        print(type(batch[0]))
+        print(type(batch[1]))
+

@@ -4,17 +4,22 @@
 """writing recognition in tensorflow"""
 import tensorflow as tf
 import data_process
+import csv
+import numpy as np
+import os
+
 
 batch_size = 50
 data_size = 10000   # the number of training data
 data_file = "/home/zxf/PycharmProjects/CIKM/CIKM_data/CIKM2017_train/train.txt"
 
-test_batchSize = 400
+test_batchSize = 100
 test_size = 2000
 test_file = "/home/zxf/PycharmProjects/CIKM/CIKM_data/CIKM2017_testA/testA.txt"
 
-dir_model = "/home/zxf/PycharmProjects/CIKM/run3"
-dir_load = "/home/zxf/PycharmProjects/CIKM/run2/epochs2_10000.ckpt"
+dir_model = "/home/zxf/PycharmProjects/CIKM/run2"
+dir_load = "/home/zxf/PycharmProjects/CIKM/run3/epochs2_10000.ckpt"
+dir_out = "/home/zxf/PycharmProjects/CIKM/out"
 
 def weight_variable(shape):
     initial = tf.truncated_normal(shape, stddev=0.05)
@@ -74,7 +79,7 @@ y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
 
 # loss function
 loss = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(y_conv, y_))))
-train_step = tf.train.AdamOptimizer(1e-4).minimize(loss)
+train_step = tf.train.AdamOptimizer(1e-3).minimize(loss)
 
 # gpu configuration
 tf_config = tf.ConfigProto()
@@ -88,30 +93,23 @@ with tf.Session(config=tf_config) as sess:
     # sess.run(init)
     saver.restore(sess, dir_load)
 
-    #training
-    for i in range(2):
-        batches = data_process.batch_iter1(data_file, batch_size)
-        for batch in batches:
+    #testing
+    test_batches = data_process.batch_iter1(test_file, test_batchSize)
+    testOutAll = []
+    for batch in test_batches:
+        testLoss_out, test_out = sess.run([loss, y_conv], feed_dict={x: batch[0], y_: batch[1], keep_prob: 1.0})
+        print("step %d, test loss %g" % (batch[2], testLoss_out))
+        testOut_flat = test_out.reshape(-1)
+        # print(test_out.shape)
+        testOutAll = np.concatenate([testOutAll, testOut_flat])
 
-            #training with a batch
-            train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
-
-            #output
-            if batch[2] % 200 == 0:
-                loss_out, y_out = sess.run([loss, y_conv], feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
-                print("epochs %d, step %d, test loss %g" % (i, batch[2], loss_out))
-                print("the predict:", [y_out[j] for j in range(10)])
-                # saver.save(sess, (dir_model + "/epochs%d_%d.ckpt") % (i+1, batch[2]))
-
-            #save model
-            if batch[2] % 2000 == 0:
-                saver.save(sess, (dir_model + "/epochs%d_%d.ckpt") % (i+1, batch[2]))
-
-        # test_batches = data_process.batch_iter1(test_file, test_batchSize)
-        # for batch in test_batches:
-        #     testLoss_out, test_out = sess.run([loss, y_conv], feed_dict={x: batch[0], y_: batch[1], keep_prob: 1.0})
-        #     print("step %d, test loss %g" % (batch[2], testLoss_out))
-        #     print("the predict:", test_out)
+        # print("the predict:", test_out)
+        if batch[2] % 2000 == 0:
+            testOutAll_column = np.column_stack(testOutAll)
+            out_path = os.path.join(dir_out, "prediction2.csv")
+            print("Saving evaluation to {0}".format(out_path))
+            with open(out_path, 'w') as f:
+                csv.writer(f).writerows(testOutAll_column)
 
 
 
