@@ -17,8 +17,7 @@ test_batchSize = 100
 test_size = 2000
 test_file = "/home/zxf/PycharmProjects/CIKM/CIKM_data/CIKM2017_testA/testA.txt"
 
-dir_model = "/home/zxf/PycharmProjects/CIKM/run2"
-dir_load = "/home/zxf/PycharmProjects/CIKM/run3/epochs2_10000.ckpt"
+dir_load = "/home/zxf/PycharmProjects/CIKM/run5/epochs2_10000.ckpt"
 dir_out = "/home/zxf/PycharmProjects/CIKM/out"
 
 def weight_variable(shape):
@@ -106,10 +105,10 @@ with tf.Session(config=tf_config) as sess:
         # print("the predict:", test_out)
         if batch[2] % 2000 == 0:
             testOutAll_column = np.column_stack(testOutAll)
-            out_path = os.path.join(dir_out, "prediction2.csv")
+            out_path = os.path.join(dir_out, "prediction_60000_slow.csv")
             print("Saving evaluation to {0}".format(out_path))
             with open(out_path, 'w') as f:
-                csv.writer(f).writerows(testOutAll_column)
+                csv.writer(f, delimiter = '\n').writerows(testOutAll_column)
 
 
 

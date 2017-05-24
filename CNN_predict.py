@@ -13,8 +13,8 @@ test_batchSize = 400
 test_size = 2000
 test_file = "/home/zxf/PycharmProjects/CIKM/CIKM_data/CIKM2017_testA/testA.txt"
 
-dir_model = "/home/zxf/PycharmProjects/CIKM/run3"
-dir_load = "/home/zxf/PycharmProjects/CIKM/run2/epochs2_10000.ckpt"
+dir_model = "/home/zxf/PycharmProjects/CIKM/run5"
+dir_load = "/home/zxf/PycharmProjects/CIKM/run3/epochs2_10000.ckpt"
 
 def weight_variable(shape):
     initial = tf.truncated_normal(shape, stddev=0.05)
@@ -74,7 +74,7 @@ y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
 
 # loss function
 loss = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(y_conv, y_))))
-train_step = tf.train.AdamOptimizer(1e-4).minimize(loss)
+train_step = tf.train.AdamOptimizer(5e-5).minimize(loss)
 
 # gpu configuration
 tf_config = tf.ConfigProto()
