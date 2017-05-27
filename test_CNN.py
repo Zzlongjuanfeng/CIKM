@@ -17,8 +17,9 @@ test_batchSize = 100
 test_size = 2000
 test_file = "/home/zxf/PycharmProjects/CIKM/CIKM_data/CIKM2017_testA/testA.txt"
 
-dir_load = "/home/zxf/PycharmProjects/CIKM/run5/epochs2_10000.ckpt"
+dir_load = "/home/zxf/PycharmProjects/CIKM/run/1495899128/checkpoints/model-3000"
 dir_out = "/home/zxf/PycharmProjects/CIKM/out"
+
 
 def weight_variable(shape):
     initial = tf.truncated_normal(shape, stddev=0.05)
@@ -54,8 +55,8 @@ h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
 h_pool2 = max_pool_2x2(h_conv2)
 
 # the third convolution layer
-W_conv3 = weight_variable([5, 5, 128, 128])
-b_conv3 = bias_variable([128])
+W_conv3 = weight_variable([5, 5, 128, 256])
+b_conv3 = bias_variable([256])
 h_conv3 = tf.nn.relu(conv2d(h_pool2, W_conv3) + b_conv3)
 h_pool3 = max_pool_2x2(h_conv3)
 
@@ -71,14 +72,18 @@ h_fc1 = tf.nn.relu(tf.matmul(h_pool3_flat, W_fc1) + b_fc1)
 keep_prob = tf.placeholder(tf.float32)
 h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 
+
+
 # readout layer
 W_fc2 = weight_variable([2048, 1])
 b_fc2 = bias_variable([1])
 y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
 
+
 # loss function
 loss = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(y_conv, y_))))
-train_step = tf.train.AdamOptimizer(1e-3).minimize(loss)
+# train step
+train_step = tf.train.AdamOptimizer(5e-4).minimize(loss)
 
 # gpu configuration
 tf_config = tf.ConfigProto()
@@ -86,7 +91,7 @@ tf_config.gpu_options.allow_growth = True
 # gpu_opinions = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
 
 init = tf.global_variables_initializer()
-saver = tf.train.Saver(max_to_keep = None)
+saver = tf.train.Saver(tf.global_variables(), max_to_keep = None)
 
 with tf.Session(config=tf_config) as sess:
     # sess.run(init)
@@ -95,20 +100,25 @@ with tf.Session(config=tf_config) as sess:
     #testing
     test_batches = data_process.batch_iter1(test_file, test_batchSize)
     testOutAll = []
+    count = 0
     for batch in test_batches:
+        count += 1
         testLoss_out, test_out = sess.run([loss, y_conv], feed_dict={x: batch[0], y_: batch[1], keep_prob: 1.0})
-        print("step %d, test loss %g" % (batch[2], testLoss_out))
+        print("step %d, test loss %g" % (count * test_batchSize, testLoss_out))
         testOut_flat = test_out.reshape(-1)
         # print(test_out.shape)
         testOutAll = np.concatenate([testOutAll, testOut_flat])
 
         # print("the predict:", test_out)
-        if batch[2] % 2000 == 0:
+        if (count * test_batchSize) % 2000 == 0:
             testOutAll_column = np.column_stack(testOutAll)
-            out_path = os.path.join(dir_out, "prediction_60000_slow.csv")
+            outName = os.path.split(dir_load)
+            out_name = os.path.split( os.path.split(outName[0])[0] )[1] + '-' + os.path.splitext(outName[1])[0] + '.csv'
+            out_path = os.path.join(dir_out, out_name)
             print("Saving evaluation to {0}".format(out_path))
             with open(out_path, 'w') as f:
                 csv.writer(f, delimiter = '\n').writerows(testOutAll_column)
+
 
 
 
